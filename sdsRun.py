@@ -10,6 +10,10 @@ import pygal
 from pygal.style import Style
 import os.path
 from os import path
+import SimpleHTTPServer
+import SocketServer
+import _thread
+
 
 DEBUG = 0
 CMD_MODE = 2
@@ -21,16 +25,26 @@ CMD_WORKING_PERIOD = 8
 MODE_ACTIVE = 0
 MODE_QUERY = 1
 PERIOD_CONTINUOUS = 0
+PORT = 8000
+
+Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+httpd = SocketServer.TCPServer(("", PORT), Handler)
+
+def start_server():
+    print("serving at port", PORT)
+    httpd.serve_forever()
+
+_thread.start_new_thread(start_server, ())
 
 if path.exists("aqi.csv"):
     csvfile = "aqi.csv"
-    print("CSV file already exists resuming")
+    print("CSV file already exists resuming ")
     with open(csvfile, "a") as fp:
         wr = csv.writer(fp, dialect='excel')
 
 else:
     csvfile = "aqi.csv"
-    print("CSV file does not exist creating one now")
+    print("CSV file does not exist creating one now ")
     with open(csvfile, "a") as fp:
         wr = csv.writer(fp, dialect='excel')
         wr.writerow(['PM 2.5', 'PM 10', 'Date'])
@@ -121,7 +135,6 @@ def pub_mqtt(jsonrow):
     with subprocess.Popen(cmd, shell=False, bufsize=0, stdin=subprocess.PIPE).stdin as f:
         json.dump(jsonrow, f)
 
-
 if __name__ == "__main__":
     cmd_set_sleep(0)
     cmd_firmware_ver()
@@ -163,9 +176,6 @@ if __name__ == "__main__":
 
         line_chart.render_to_file('aqi.svg') 
     
-            
-
-
         print("Going to sleep for 10 min...")
         cmd_set_sleep(1)
         time.sleep(600)
