@@ -6,8 +6,8 @@ from __future__ import print_function
 import serial, struct, sys, time, json, subprocess
 import csv
 import pandas as pd
-import pygal
-from pygal.style import Style
+import plotly.express as px
+import plotly
 import os.path
 from os import path
 import SimpleHTTPServer
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     cmd_set_mode(MODE_QUERY);
     while True:
         cmd_set_sleep(0)
-        for t in range(10): #Sets the amount of times to poll from the sensor
+        for t in range(2): #Sets the amount of times to poll from the sensor
             values = cmd_query_data();
             if values is not None and len(values) == 2:
               print("PM2.5: ", values[0], ", PM10: ", values[1])
@@ -166,16 +166,18 @@ if __name__ == "__main__":
         date = data['Date'].values
         PM25 = data['PM 2.5'].values
         PM10 = data['PM 10'].values
-        line_chart = pygal.Line(human_readable=True, interpolate='hermite', interpolation_parameters={'type': 'cardinal', 'c': .75}, x_label_rotation=45, x_labels_major_every=10, show_minor_x_labels=False)
-        line_chart.x_labels = date
-        line_chart.title = 'Air Quality'
-        line_chart.add('PM 2.5', PM25)
-        line_chart.add('PM 10', PM10)
+        annotations = []
 
-        line_chart.render()
+        df = pd.read_csv('aqi.csv')
+        fig = px.scatter(df)
+        fig.add_scatter(x=df["Date"], y=df["PM 2.5"], name="PM 2.5", mode='lines+markers', line_shape='spline', text="PM 2.5")
+        fig.add_scatter(x=df["Date"], y=df["PM 10"], name="PM 10", mode='lines+markers', line_shape='spline', text="PM 10")
 
-        line_chart.render_to_file('aqi.svg') 
-    
+        annotations.append(dict(xref='paper', yref='paper', x=0.5, y=1.05, xanchor='center', yanchor='bottom', text='Air Quality', font=dict(family='Arial', size=30, color='rgb(37,37,37)'), showarrow=False))
+
+        fig.update_layout(annotations=annotations)
+        plotly.offline.plot(fig, filename = 'index.html', auto_open=False)
+
         print("Going to sleep for 10 min...")
         cmd_set_sleep(1)
         time.sleep(600)
